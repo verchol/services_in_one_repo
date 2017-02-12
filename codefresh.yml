@@ -2,6 +2,6 @@ version: '1.0'
 steps:
   # trigger the certain pipeline
   cf-cli-step:
-    image: node:latest
+    image: verchol/cf-cli:latest
     commands:
-      - bash -c 'npm install -g @codefresh-io/cf-cli && cf-cli login --token ${{TOKEN}} -u ${{USER}} && cf-cli builds build -a ${{ACCOUNT}} -o ${{REPO_OWNER}} -r ${{REPO_NAME}} --branch ${{BRANCH}} --pipelineName ${{PIPELINE_NAME}}'
+      - bash -c 'cf-cli login --token ${{TOKEN}} -u ${{USER}} && cf-cli builds build -a ${{ACCOUNT}} -o ${{REPO_OWNER}} -r ${{REPO_NAME}} --branch ${{BRANCH}} --pipelineName ${{PIPELINE_NAME}}'
