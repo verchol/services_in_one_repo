@@ -1,0 +1,3 @@
+[submodule "dataModel"]
+	path = dataModel
+	url = https://github.com/verchol/datamodel-example-blog.git
