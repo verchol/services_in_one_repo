@@ -1,0 +1,74 @@
+version: '1.0'
+steps:
+  BuildingDockerImage:
+    title: Building Docker Image
+    type: build
+    image_name: freshkeep/helloworldecsdemo
+    working_directory: ./
+    dockerfile: Dockerfile
+  RunningUnitTests:
+    title: Running Unit Tests
+    image: '${{BuildingDockerImage}}'
+    working_directory: IMAGE_WORK_DIR
+    entry_point:
+      - /bin/sh
+      - /codefresh/volume/cf-generated/unit_test_script
+    create_file:
+      path: /codefresh/volume/cf-generated
+      name: unit_test_script
+      content: |-
+        mkdir logs
+        npm install mocha -g --silent
+        npm install mocha-co -g --silent
+        mocha tests
+    on_success:
+      metadata:
+        set:
+          - '${{BuildingDockerImage.imageId}}':
+              - CF_QUALITY: true
+    on_fail:
+      metadata:
+        set:
+          - '${{BuildingDockerImage.imageId}}':
+              - CF_QUALITY: false
+  PushingBranchToDockerRegistry:
+    title: Pushing branch image to Docker Registry
+    type: push
+    candidate: '${{BuildingDockerImage}}'
+    tag: '${{CF_BRANCH}}'
+    when:
+      branch:
+        ignore:
+          - master
+  PushingVersionedMasterToDockerRegistry:
+    title: Pushing master image to Docker Registry with commit hash as tag
+    type: push
+    candidate: '${{BuildingDockerImage}}'
+    tag: '${{CF_SHORT_REVISION}}'
+    when:
+      branch:
+        only:
+          - master
+  PushingLatestMasterToDockerRegistry:
+    title: Pushing master image to Docker Registry with latest tag
+    type: push
+    candidate: '${{BuildingDockerImage}}'
+    tag: latest
+    when:
+      branch:
+        only:
+          - master
+  DeployToEcs:
+    title: Deploying to ECS
+    image: codefresh/cf-deploy-ecs
+    commands:
+      - cfecs-update us-east-1 cluster-fuck-2 HelloWorldService2 -i $DOCKER_IMAGE_NAME -t $DOCKER_IMAGE_TAG
+    environment:
+      - 'AWS_ACCESS_KEY_ID=${{AWS_ACCESS_KEY_ID}}'
+      - 'AWS_SECRET_ACCESS_KEY=${{AWS_SECRET_ACCESS_KEY}}'
+      - 'DOCKER_IMAGE_NAME=${{BuildingDockerImage}}'
+      - 'DOCKER_IMAGE_TAG=${{CF_SHORT_REVISION}}'
+    when:
+      branch:
+        only:
+          - master
